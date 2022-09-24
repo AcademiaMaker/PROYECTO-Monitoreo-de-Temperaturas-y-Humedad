@@ -1,4 +1,4 @@
-*/  Programa de Monitoreo de Temperaturas y Humedad en 
+/*  Programa de Monitoreo de Temperaturas y Humedad en 
     los Manglares de la Zona de Ciudad del Carmen Campeche
     
     Iniciativa: AcademiaMaker.org 
