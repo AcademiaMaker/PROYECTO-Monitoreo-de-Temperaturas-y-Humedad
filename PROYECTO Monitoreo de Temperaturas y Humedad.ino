@@ -1,117 +1,247 @@
-/*  Programa de Monitoreo de Temperaturas y Humedad en 
-    los Manglares de la Zona de Ciudad del Carmen Campeche
+
+/**************************************************************************/
+/*!
+    Programa de Monitoreo de Temperaturas y Humedad en los Manglares de la 
+    Zona de Ciudad del Carmen Campeche
     
     Iniciativa: AcademiaMaker.org 
     Desarrollado: Jose Noe Castellanos Trejo
     Proyecto en GitHub:
     Fecha de creacion de proyecto: 21 - Sep - 2022
 
+
+    Con el desarrollo de esta implementacion tecnologica utilizando
+    software y hardware de codigo abierto, se planea mejorar la
+    monitorizacion de los manglares y humedales de la zona de campeche, 
+    que es espacio protegido por medio de la tecnologia IOT, Internet de 
+    las Cosas, e implementar iniicativas para cuidar de nuestros recursos
 */
+/**************************************************************************/
 
-#include <Wire.h>
-#include <SoftwareSerial.h>
-// rxPin_0 txPin_0 = 1,2
-const byte rxPin_1 = 2;
-const byte txPin_1 = 3;
-const byte rxPin_2 = 4;
-const byte txPin_2 = 5;
+/*
+    Librerias para crear puertos series por Software, estos puerto series
+    tienen sus limitaciones, conoce en www.arduino.cc mas info sobre la
+    libreria Software Serial
+*/
+#include <SoftwareSerial.h>                                            
 
-SoftwareSerial serialSecundario (rxPin_1, txPin_1, inverse_logic);
-SoftwareSerial serialTerciario  (rxPin_2, txPin_2, inverse_logic);
+//  Declaraciones para las librerias de Sofware Serial
+//  Los pines 0 y 1 son predeterminados por arduino para comunicacio serie
+const byte rxPin_2 = 2;
+const byte txPin_2 = 3;
+const byte rxPin_3 = 4;
+const byte txPin_3 = 5;
 
+SoftwareSerial serialAuxiliar2(rxPin_2, txPin_2);
+SoftwareSerial serialAuxiliar3(rxPin_3, txPin_3);
 
-#include <Adafruit_Sensor.h>                                                 //Librerias para el sensor DTH11 PCB o No PCB
+/*
+    Librerias para unificar la toma de resultados, y la conversion
+    de los datos de los sensores al SI (Sistema Internacional) con ello
+    englobar los datos presentados por los sensores de diferentes marcas
+    en uno solo. Mas informacion en www.adafruit.com
+*/
+#include <Adafruit_Sensor.h>                                            
 #include <DHT.h>
 #include <DHT_U.h>
 
+//  Declaraciones para las librerias de Adafruit Sensor Unified
+//  Librerias para el sensor DTH11 DHT21 DHT22
 #define DHTPIN 6
 #define DHTTYPE DHT11
 
-DHT_Unified dht (DHTPIN, DHTTYPE);
+DHT_Unified dhtSensor (DHTPIN, DHTTYPE);
 
-float delay_event;
+float delay_event_dht;
 
-const int entrada1
-const int entrada2
-const int entrada3
-const int entrada4
+/*
+    Librerias para unificar la toma de resultados, y la conversion
+    de los datos de los sensores al SI (Sistema Internacional) con ello
+    englobar los datos presentados por los sensores de diferentes marcas
+    en uno solo. El sensor de presion barometris BMP085 utiliza la 
+    comunicacion I2C por lo cual se necesita anexar la libreria Wire para
+    mas informacion en www.arduino.cc y www.adafruit.com
 
-void setup() {
+    La libreria Wire es utilizada por la libreria del BMP085 por lo que 
+    no sera vista en la programacion. 
+
+    Conexiones del Sensor BMP085
+    ===========
+
+    Conectar SCL a Analogico 5
+    Conectar SDA a Analogico 4
+    Conectar VDD a 3.3V
+    Conectar GROUND a Tierra Comun
+*/
+#include <Wire.h>                                                      
+#include <Adafruit_BMP085_U.h>
+
+Adafruit_BMP085_Unified bmpSensor(10085);
+
+float delay_event_bmp;
+
+//  Variables Globales para la ejecucion del programa
+bool estadoPuertosSeries;
+
+//  Constantes de tiempo de espera para la ejecucion del programa
+const int tiempoDelay = 500;
+const int tiempoReboot = 5000;
+const int entrada4 = 0;
+
+//  Funciones de inicialziacion de los sensores y puertos series
+bool inicializacionPuertosSeries(){
+  bool estadoPuertoSeriePrincipal;
+  bool estadoPuertoSerieAuxiliar;
+
   Serial.begin(9600);
+  serialAuxiliar2.begin(9600);
+  serialAuxiliar3.begin(9600);
 
-  pinMode(rxPin_1, INPUT);
-  pinMode(txPin_1, OUTPUT);
-  serialSecundario.begin(9600);
-  
-  pinMode(rxPin_2, INPUT);
-  pinMode(txPin_2, OUTPUT);
-  serialTerciario.begin(9600);
+  while(!Serial){
+//  Se implementara una pantalla para poder ver los status del error
+    Serial.println("Inicializando Puerto Serie");
+    delay(tiempoDelay);
 
-  inicializacionSensorDHT11();
-
-  Wire.begin(8);                                      //Wire.begin(Direccion del dispositivo I2C, Maestro Opcional) - Inicializa Comunicacion I2C
-  Wire.onRecive(eventoI2C);                           //Wire.onRecive(Funcion a realizar) -  Esta función registra una función que se llamará cuando un dispositivo periférico reciba una transmisión desde un dispositivo controlador.
-}
-
-void loop() {
-  while(inicializacionPuertosSeries()){
-    delay(delay_event);
-    sensor_event_t lecturaDHT11;
-    dht.temperature().getEvent(&lecturaDHT11);
-    if(isnan(lecturaDHT11.temperature)){
-      Serial.println("Error en la lectura de Temperatura")
+    if(!Serial){
+        Serial.print("ERROR FATAL");
+        Serial.println("Puerto Serie - Error: Fallo al Iniciar");
     }
-    else{
-      Serial.println(lecturaDHT11.temperature);
+    else if(Serial){
+      Serial.println("INICIO COMPLETADO");
+      delay(tiempoDelay);
+      Serial.println("Puerto Serie - MODE: inicializado correctamente");
+      delay(tiempoDelay);
+      estadoPuertoSeriePrincipal = true;
+      break;
     }
-    dht.humidity().getEvent(&lecturaDHT11);
-    if(isnan(lecturaDHT11.relative_humidity)){
-      Serial.println("Error en la lectura de Humedad")
-    }
-    else{
-      Serial.println(lecturaDHT11.relative_humidity)
-    }
-    
+    Serial.println("Reiniando Puerto Serie");
+    delay(tiempoDelay);
   }
-  
-  Serial.println("Fallo al inicializar el programa")
+
+
+  if (!serialAuxiliar2 && !serialAuxiliar3)
+  {
+    estadoPuertoSerieAuxiliar = false;
+    Serial.println("Puertos Series auxiliares - Error: Fallo al Iniciar");
+  }
+  else if (serialAuxiliar2 && serialAuxiliar3) {
+    estadoPuertoSerieAuxiliar = true;
+    if (estadoPuertoSeriePrincipal && estadoPuertoSeriePrincipal){
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
 }
 
-void inicializacionSensorDHT11(){
+//  Funcion para inicializar los sensores de Temperatura y Humedad
+void inicializacionSensorDHT11(){                                   
   Serial.println("Inicializando Sensor");
-  dht.begin();
+  delay(tiempoDelay);
+
+  dhtSensor.begin();
   sensor_t sensorDHT11;
 
   Serial.println("Incializando Sensor de Temperatura DHT11");
-  dht.temperature().getSensor(&sensorDHT11);
+  dhtSensor.temperature().getSensor(&sensorDHT11);
   Serial.print("Nombre de Sensor:     ");   Serial.println(sensorDHT11.name);
   Serial.print("Tipo de Sensor:       ");   Serial.println(sensorDHT11.type);
   Serial.print("Resolucion de Sensor: ");   Serial.println(sensorDHT11.resolution);
 
   Serial.println("Incializando Sensor de Humedad DHT11");
-  dht.humidity().getSensor(&sensorDHT11);
+  dhtSensor.humidity().getSensor(&sensorDHT11);
   Serial.print("Nombre de Sensor:     ");   Serial.println(sensorDHT11.name);
   Serial.print("Tipo de Sensor:       ");   Serial.println(sensorDHT11.type);
   Serial.print("Resolucion de Sensor: ");   Serial.println(sensorDHT11.resolution);
 
-  delay_event = sensorDHT11.min_delay;
+  delay_event_dht = sensorDHT11.min_delay;
 }
 
-bool inicializacionPuertosSeries(){
-  if (Serial.isListening() || serialSecundario.isListening() || serialTerciario.isListening()){
-    Serial.println("Puerto Series Inicializados Correctamente");
-    delay(10);
-    return true;
+// Funcion para inicializar los sensores de Temperatura y Humedad
+void inicializacionSensorBMP085(){                                    
+  Serial.println("Inicializando Sensor");
+  delay(tiempoDelay);
+
+  sensor_t sensorBMP085;
+  
+  Serial.println("Incializando Sensor de Temperatura DHT11");
+  bmpSensor.getSensor(&sensorBMP085);
+  Serial.println("------------------------------------");
+  Serial.print  ("Sensor:       "); Serial.println(sensorBMP085.name);
+  Serial.print  ("Driver Ver:   "); Serial.println(sensorBMP085.version);
+  Serial.print  ("Unique ID:    "); Serial.println(sensorBMP085.sensor_id);
+  Serial.print  ("Max Value:    "); Serial.print(sensorBMP085.max_value); Serial.println(" hPa");
+  Serial.print  ("Min Value:    "); Serial.print(sensorBMP085.min_value); Serial.println(" hPa");
+  Serial.print  ("Resolution:   "); Serial.print(sensorBMP085.resolution); Serial.println(" hPa");  
+  Serial.println("------------------------------------");
+  Serial.println("");
+
+  delay_event_bmp = sensorBMP085.min_delay;
+}
+
+//  Lectura del sensor DHT11 Humedad y Temperatura
+void lecturaDHT11 (){
+  sensors_event_t readDHT11;
+  dhtSensor.temperature().getEvent(&readDHT11);
+
+  if(isnan(readDHT11.temperature)){
+    Serial.println("Error: lectura de Temperatura");
+    delay(delay_event_bmp);
+  }
+  else{
+    Serial.println("----------------SENSOR: DHT11--------------------");
+    Serial.print("Temperatura:    ");   Serial.print(readDHT11.temperature);  Serial.println(" ºC");
+    Serial.println("-------------------------------------------------");
+    delay(delay_event_dht);
   }
   
-  else {
-    Serial.println("Puerto Series No Inicializados Correctamente");
-    delay(10);
-    return false;
+  dhtSensor.humidity().getEvent(&readDHT11);
+
+  if(isnan(readDHT11.relative_humidity)){
+    Serial.println("Error: lectura de Humedad");
+    delay(delay_event_dht);
+  }
+  else{
+    Serial.println("----------------SENSOR: DHT11--------------------");
+    Serial.print("Humedad:    ");   Serial.print(readDHT11.relative_humidity);  Serial.println(" %HR");
+    Serial.println("-------------------------------------------------");
+    delay(delay_event_dht);
   }
 }
-void eventoI2C(){
-  if(Wire.available() > 0){
-    char dato_Recibido = Wire.read();
+
+//  Lecutura del Sensor BMP085 de presion barometrica
+void lecturaBMP085(){
+  sensors_event_t readBMP085;
+  bmpSensor.getEvent(&readBMP085);
+
+  if (isnan(readBMP085.pressure)){
+    Serial.println("Error: Lectura de Presion Barometrica");
+    delay(delay_event_bmp);
   }
+  else{
+    Serial.println("----------------SENSOR: BMP085--------------------");
+    Serial.print("Presion Barometrica:    ");   Serial.print(readBMP085.pressure);  Serial.println(" hPa");
+    Serial.println("--------------------------------------------------");
+    delay(delay_event_bmp);
+  }
+  
+  
+}
+//  Configuracion del Arduino
+void setup() {                                                      
+  estadoPuertosSeries = inicializacionPuertosSeries();
+  inicializacionSensorDHT11();
+  inicializacionSensorBMP085();                                     
+}
+
+//  Ejecucion del programa
+void loop() {
+  while(!estadoPuertosSeries){
+    lecturaDHT11();
+    lecturaBMP085();
+    delay(tiempoDelay);
+  }
+  Serial.println("Fallo al inicializar el programa");
+  delay(tiempoReboot);
 }
