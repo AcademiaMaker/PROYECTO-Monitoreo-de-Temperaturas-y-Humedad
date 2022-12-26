@@ -1,6 +1,5 @@
-
 /**************************************************************************/
-/*!
+/*
     Programa de Monitoreo de Temperaturas y Humedad en los Manglares de la 
     Zona de Ciudad del Carmen Campeche
     
@@ -23,16 +22,18 @@
     tienen sus limitaciones, conoce en www.arduino.cc mas info sobre la
     libreria Software Serial
 */
-#include <SoftwareSerial.h>                                            
-
+#include <SoftwareSerial.h>
+#include <Adafruit_FONA.h>                
+                            
 //  Declaraciones para las librerias de Sofware Serial
-//  Los pines 0 y 1 son predeterminados por arduino para comunicacio serie
+//  Los pines 0 y 1 son predeterminados por arduino para comunicacion serie
+//  Se crea un objeto SIM800L para comunicar con el modulo GSM SIM800L
 const byte rxPin_2 = 2;
 const byte txPin_2 = 3;
 const byte rxPin_3 = 4;
 const byte txPin_3 = 5;
 
-SoftwareSerial serialAuxiliar2(rxPin_2, txPin_2);
+SoftwareSerial SIM800L(rxPin_2, txPin_2);
 SoftwareSerial serialAuxiliar3(rxPin_3, txPin_3);
 
 /*
@@ -47,6 +48,8 @@ SoftwareSerial serialAuxiliar3(rxPin_3, txPin_3);
 
 //  Declaraciones para las librerias de Adafruit Sensor Unified
 //  Librerias para el sensor DTH11 DHT21 DHT22
+//  dhtPIN para declarar el PIN utilizado por el sensor
+//  dhtTYPE para declarar la version del sensor
 #define dhtPIN 6
 #define dhtTYPE DHT11
 
@@ -140,16 +143,20 @@ void inicializacionLCD(){
   lcdMonitor.print("Monitor");
   lcdMonitor.setCursor(4, 2);
   lcdMonitor.print("Temperatura");
+  delay(tiempoDelay);
   lcdMonitor.print("  Humedad  ");
+  delay(tiempoDelay);
   lcdMonitor.print("  Presion  ");
+  delay(tiempoDelay);
   lcdMonitor.clear();
 }
 
 //  Funcion para escribir mensajes en la pantalla LCD
-void mensajeLCD(String textoSup, String textoInf, int columnaLCD,int filaLCD, int columnaLCD2, int filaLCD2){
-  lcdMonitor.setCursor(filaLCD, columnaLCD);
+void mensajeLCD(String textoSup, String textoInf, int columnaLCD, int filaLCD, int columnaLCD2, int filaLCD2){
+  lcdMonitor.clear();
+  lcdMonitor.setCursor(columnaLCD, filaLCD);
   lcdMonitor.print(textoSup);
-  lcdMonitor.setCursor(filaLCD, columnaLCD);
+  lcdMonitor.setCursor(columnaLCD2, filaLCD2);
   lcdMonitor.print(textoInf);
 }
 //  Funciones de inicialziacion de los sensores y puertos series
@@ -158,7 +165,7 @@ bool inicializacionPuertosSeries(){
   bool estadoPuertoSerieAuxiliar;
 
   Serial.begin(9600);
-  serialAuxiliar2.begin(9600);
+  SIM800L.begin(9600);
   serialAuxiliar3.begin(9600);
 
   while(!Serial){
@@ -184,15 +191,15 @@ bool inicializacionPuertosSeries(){
   }
 
 
-  if (!serialAuxiliar2 && !serialAuxiliar3)
+  if (!SIM800L && !serialAuxiliar3)
   {
     estadoPuertoSerieAuxiliar = false;
     Serial.println("Puertos Series auxiliares - Error: Fallo al Iniciar");
     mensajeLCD("Cargando", "Puerto Serie Aux", 1, 1, 1, 2);
   }
-  else if (serialAuxiliar2 && serialAuxiliar3) {
+  else if (SIM800L && serialAuxiliar3) {
     estadoPuertoSerieAuxiliar = true;
-    if (estadoPuertoSeriePrincipal && estadoPuertoSeriePrincipal){
+    if (estadoPuertoSeriePrincipal && estadoPuertoSerieAuxiliar){
       return true;
     }
     else {
@@ -296,8 +303,10 @@ void lecturaBMP085(){
     Serial.println("--------------------------------------------------");
     mensajeLCD("Presion: ", char(readBMP085.pressure) + " %hPa", 1, 1, 1, 2);
     delay(delay_event_bmp);
-  }
-  
+  }  
+}
+
+void envioSIM800L(){
   
 }
 //  Configuracion del Arduino
@@ -318,4 +327,5 @@ void loop() {
   Serial.println("Fallo al ejecutar el programa");
   mensajeLCD("Error: Ejecucion", "Programa", 1, 1, 1, 2);
   delay(tiempoReboot);
+  setup();
 }
